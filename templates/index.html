@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicles Flow Map</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f9fafb; /* clean light background */
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: 46px;
+            color: #2c3e50; /* deep slate */
+            margin: 25px 0 15px;
+            font-weight: 600;
+        }
+
+        .main-container {
+            display: flex;
+            /* Changed to row layout to fit the simulation block on the side */
+            flex-direction: row; 
+            justify-content: center;
+            align-items: flex-start; /* Align content to the top */
+            margin: 10px;
+        }
+
+        .content-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .input-container {
+            margin-bottom: 20px;
+            text-align: center;
+            width: 100%; /* Take full width of content-area */
+        }
+
+        label {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            display: block;
+            color: #34495e;
+        }
+
+        select {
+            padding: 10px 14px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 1px solid #b0bec5;
+            background: #ffffff;
+            color: #2c3e50;
+            transition: all 0.3s ease;
+        }
+
+        select:hover, select:focus {
+            border-color: #2980b9;
+            outline: none;
+            box-shadow: 0 0 5px rgba(41, 128, 185, 0.3);
+        }
+
+        /* Styles for both video containers */
+        .raw-stream-container, .video-container, .graph-container, .prediction-container {
+            max-width: 850px;
+            width: 100%;
+            margin: 20px auto;
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            background-color: #ffffff;
+            padding: 20px;
+            text-align: center;
+        }
+
+        /* Differentiating the headings */
+        .raw-stream-container h3 {
+             color: #2980b9; /* Original stream: Blue */
+             font-weight: 600;
+             margin-bottom: 15px;
+        }
+        .video-container h3 {
+             color: #c0392b; /* Processed stream: Red/Distinct Color */
+             font-weight: 600;
+             margin-bottom: 15px;
+        }
+
+        .graph-container h2,
+        .prediction-container h2 {
+            color: #2980b9;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .prediction-container p {
+            font-size: 18px;
+            margin: 6px 0;
+        }
+
+        .prediction-container strong {
+            font-weight: 600;
+        }
+
+        .no-data {
+            color: #e74c3c;
+            font-weight: 500;
+        }
+
+        table {
+            border-collapse: collapse;
+            margin: 25px auto;
+            width: 60%; 
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+        }
+
+        table th {
+            background: #2980b9;
+            color: white;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        table td {
+            padding: 10px;
+            font-size: 15px;
+            border-bottom: 1px solid #ecf0f1;
+            text-align: center;
+            color: #34495e;
+        }
+
+        table tr:last-child td {
+            border-bottom: none;
+        }
+
+        h3 {
+            text-align: center;
+            font-size: 22px;
+            color: #2c3e50;
+            margin-top: 30px;
+        }
+
+        .footer {
+            margin-top: 25px;
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+
+        /* ------------------------------------- */
+        /* NEW STYLES: Location Simulation Panel */
+        /* ------------------------------------- */
+        .simulation-panel {
+            width: 300px;
+            min-width: 300px; /* Ensures it stays fixed */
+            margin-top: 20px;
+            margin-left: 40px;
+            padding: 20px;
+            background-color: #e8f4f8; /* Light blue background */
+            border: 1px solid #cce7f0;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 20px; /* Stick to the top when scrolling */
+        }
+
+        .simulation-panel h3 {
+            color: #007bff;
+            font-size: 20px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+        }
+
+        .simulation-panel label {
+            text-align: left;
+            margin-top: 10px;
+            font-size: 16px;
+        }
+
+        .simulation-panel input[type="number"],
+        .simulation-panel input[type="text"],
+        .simulation-panel button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border: 1px solid #ced4da;
+            box-sizing: border-box;
+        }
+        
+        .simulation-panel button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+
+        .simulation-panel button:hover {
+            background-color: #0056b3;
+        }
+        
+        #simulation-status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        /* Predefined Location Buttons */
+        .location-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px dashed #ced4da;
+        }
+        .location-buttons button {
+            background-color: #28a745;
+            padding: 8px;
+            font-size: 14px;
+        }
+        .location-buttons button:hover {
+            background-color: #1e7e34;
+        }
+        /* Prediction level color classes */
+        .level-heavy { color: #e74c3c; font-weight: 700; }
+        .level-high { color: #f39c12; font-weight: 700; }
+        .level-medium { color: #3498db; font-weight: 700; }
+        .level-low { color: #27ae60; font-weight: 700; }
+        .level-expected { color: #27ae60; font-weight: 700; }
+    </style>
+</head>
+<body data-index-base-url="{{ url_for('index') }}">
+
+<h1>Vehicles Flow Map</h1>
+
+<div class="main-container">
+    <div class="content-area">
+        <div class="input-container">
+            <label for="videoSelect">Select Location:</label>
+            <select id="videoSelect" onchange="changeVideo()">
+                <option value="0" {% if video_index == 0 %}selected{% endif %}>Shinjukugado-W, Tokyo, Japan</option>
+                <option value="1" {% if video_index == 1 %}selected{% endif %}>Colorado Mountain College, USA</option>
+                <option value="2" {% if video_index == 2 %}selected{% endif %}>Times Square, New York, USA</option>
+                <option value="3" {% if video_index == 3 %}selected{% endif %}>Roswell, New Mexico, USA</option>
+            </select>
+            
+            <div style="margin-top: 15px;">
+                 <label for="historicalDates">Select Historical Dates (Comma-separated YYYY-MM-DD):</label>
+                 <input type="text" id="historicalDates" name="historicalDates" 
+                             placeholder="e.g., 2025-10-02, 2025-10-05" 
+                             value="{{ selected_dates_str if selected_dates_str else '' }}"
+                             style="padding: 10px; border-radius: 8px; border: 1px solid #b0bec5; width: 300px;">
+                 <button onclick="submitCustomDates()" style="padding: 10px 15px; border-radius: 8px; border: none; background-color: #2980b9; color: white; cursor: pointer;">Predict Now</button>
+                 <p style="font-size: 14px; color: #7f8c8d; margin-top: 5px;">*Prediction uses the traffic patterns from these specific dates.</p>
+            </div>
+            
+        </div>
+
+        <div class="raw-stream-container">
+            <h3>Original YouTube Live Stream</h3>
+            {% if youtube_embed_url %}
+            <div style="position: relative; width: 750px; height: 422px; margin: 0 auto;">
+                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 10;"></div> 
+                <iframe 
+                    width="750" 
+                    height="422" 
+                    src="{{ youtube_embed_url }}"
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen 
+                    style="border-radius: 8px; position: relative; z-index: 1;">
+                </iframe>
+            </div>
+            {% else %}
+            <p class="no-data">Could not load original YouTube stream (Invalid URL or ID).</p>
+            {% endif %}
+        </div>
+
+        <div class="video-container">
+            <h3>Processed Frames from Live Stream</h3>
+            <img src="{{ url_for('video_feed', video_index=video_index) }}" width="750" height="560" style="border-radius: 8px;">
+        </div>
+
+        <div class="graph-container">
+            <h2>Choropleth Map</h2>
+            <div>{{ graph_html | safe }}</div>
+        </div>
+
+        <div class="prediction-container">
+            <h2>Predicted Traffic for Next 24 Hours ({{ city }})</h2>
+            {% if total_level and total_24h %}
+            {# Use semantic class names for levels so static linters don't choke on inline Jinja in style attributes #}
+            {% set level_class = 'level-' + (total_level|lower|string).replace(' ', '-') %}
+            <p>Overall Level: <strong class="{{ level_class }}">{{ total_level }}</strong></p>
+            <p>Expected Total Vehicles: <strong class="level-expected">{{ total_24h }}</strong></p>
+            {% else %}
+                <p class="no-data">No prediction available. Collect more historical data to see the forecast for the next 24 hours.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="simulation-panel">
+        <h3>User Location Simulation</h3>
+        <p style="font-size: 12px; color: #555; margin-bottom: 15px;">
+            Enter a user ID and click to automatically detect your GPS location and check for alerts.
+        </p>
+        
+        <label for="userId">User ID:</label>
+        <input type="number" id="userId" value="101" placeholder="e.g., 101">
+        
+        <button onclick="autoDetectAndMove()">Auto-Detect GPS & Check Alert</button>
+        
+        <div id="simulation-status">Awaiting input...</div>
+        
+        <div class="location-buttons">
+            <p style="font-size: 14px; color: #555; margin-bottom: 5px;">Quick Locations (for Testing):</p>
+            <button onclick="setSimulatedLocation(101, 35.695, 139.70)">User 101 near Tokyo</button>
+            <button onclick="setSimulatedLocation(102, 40.7578, -73.9855)">User 102 near Times Square</button>
+            <button onclick="setSimulatedLocation(103, 39.5473, -107.3247)">User 103 near Colorado</button>
+            <button onclick="setSimulatedLocation(101, 28.7041, 77.1025)">User 101 - Far Away (Delhi)</button>
+        </div>
+    </div>
+</div>
+
+{% if hourly_preds %}
+    <h3>Next 24 Hours Hourly Traffic Predictions (Starting Now)</h3>
+    <table>
+        <tr><th>Date</th><th>Day</th><th>Interval</th><th>Predicted Traffic</th></tr>
+        {% for p in hourly_preds %}
+            <tr>
+                <td>{{ p.date }}</td>
+                <td>{{ p.day_of_week }}</td>
+                <td>{{ p.interval }}</td> 
+                <td>{{ p.predicted_total }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+{% else %}
+    <p style="text-align:center; color:#7f8c8d;">No prediction data available yet.</p>
+{% endif %}
+
+<div class="footer">
+    &copy; 2025 Traffic Prediction System
+</div>
+
+<script>
+// Base URL for the index route is stored on <body> as a data attribute to avoid template tags inside JS
+const INDEX_BASE_URL = document.body.dataset.indexBaseUrl || '/';
+
+function changeVideo() {
+    const select = document.getElementById('videoSelect');
+    const videoIndex = select.value;
+    const currentDates = document.getElementById('historicalDates').value;
+    
+    // Build the URL using the base URL and URL-encoded query parameters
+    let url = `${INDEX_BASE_URL}?video_index=${encodeURIComponent(videoIndex)}`;
+    
+    if (currentDates) {
+        url += `&historical_dates=${encodeURIComponent(currentDates)}`;
+    }
+    window.location.href = url;
+}
+
+function submitCustomDates() {
+    const select = document.getElementById('videoSelect');
+    const videoIndex = select.value;
+    const datesInput = document.getElementById('historicalDates').value;
+
+    // Build the URL using the base URL and URL-encoded query parameters
+    let url = `${INDEX_BASE_URL}?video_index=${encodeURIComponent(videoIndex)}`;
+    
+    if (datesInput) {
+        url += `&historical_dates=${encodeURIComponent(datesInput)}`;
+    }
+    window.location.href = url;
+}
+
+
+// -------------------------------------------------
+// Location Simulation Functions 
+// -------------------------------------------------
+
+// Helper to send data to the backend API
+async function sendGpsToBackend(userId, lat, lon, statusDiv) {
+    const data = { user_id: userId, lat: parseFloat(lat), lon: parseFloat(lon) };
+    
+    try {
+        const response = await fetch('/move_user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.ok) {
+            statusDiv.style.backgroundColor = '#d4edda';
+            statusDiv.style.color = '#155724';
+            statusDiv.innerHTML = result.message + '. Check Telegram/Console.';
+        } else {
+            statusDiv.style.backgroundColor = '#f8d7da';
+            statusDiv.style.color = '#721c24';
+            statusDiv.innerHTML = `Error: ${result.error || 'Unknown error occurred.'}`;
+        }
+    } catch (error) {
+        statusDiv.style.backgroundColor = '#f8d7da';
+        statusDiv.style.color = '#721c24';
+        statusDiv.innerHTML = `Network Error: Could not connect to Flask backend.`;
+    }
+}
+
+// Function used by the Quick Locations buttons (manual input for testing specific locations)
+function setSimulatedLocation(userId, lat, lon) {
+    document.getElementById('userId').value = userId;
+    
+    const statusDiv = document.getElementById('simulation-status');
+    statusDiv.style.backgroundColor = '#fff3cd';
+    statusDiv.style.color = '#856404';
+    statusDiv.innerHTML = `Manual Location Set: (${lat}, ${lon}). Sending to server...`;
+    
+    sendGpsToBackend(userId, lat, lon, statusDiv);
+}
+
+// Function to use the browser's Geolocation API (new automatic method)
+async function autoDetectAndMove() {
+    const userId = document.getElementById('userId').value;
+    const statusDiv = document.getElementById('simulation-status');
+
+    if (!userId) {
+        statusDiv.style.backgroundColor = '#f8d7da';
+        statusDiv.style.color = '#721c24';
+        statusDiv.innerHTML = 'Error: User ID is required.';
+        return;
+    }
+
+    statusDiv.style.backgroundColor = '#fff3cd';
+    statusDiv.style.color = '#856404';
+    statusDiv.innerHTML = 'Requesting GPS location from browser...';
+
+    // 1. Check for Geolocation support
+    if (!navigator.geolocation) {
+        statusDiv.style.backgroundColor = '#f8d7da';
+        statusDiv.style.color = '#721c24';
+        statusDiv.innerHTML = 'Error: Geolocation is not supported by your browser.';
+        return;
+    }
+
+    // 2. Get the current position
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            
+            // 3. Send the detected coordinates to the backend API
+            statusDiv.innerHTML = `GPS Detected: (${lat.toFixed(4)}, ${lon.toFixed(4)}). Sending to server...`;
+
+            await sendGpsToBackend(userId, lat, lon, statusDiv);
+        },
+        (error) => {
+            // 4. Handle errors (e.g., user denied permission)
+            let errorMessage = 'GPS Error. Make sure location services are enabled.';
+            if (error.code === error.PERMISSION_DENIED) {
+                errorMessage = 'Error: User denied Geolocation access.';
+            }
+            statusDiv.style.backgroundColor = '#f8d7da';
+            statusDiv.style.color = '#721c24';
+            statusDiv.innerHTML = errorMessage;
+        },
+        // Geolocation Options (optional but recommended)
+        {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+        }
+    );
+}
+</script>
+
+</body>
+</html>
